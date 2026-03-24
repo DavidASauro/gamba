@@ -21,16 +21,19 @@ async function fetchBulkData() {
 
     console.log("Downloading default cards JSON...");
     const cardsRes = await fetch(defaultCards.download_uri);
+    const cards = await cardsRes.json();
 
     if (!cardsRes.body) {
       throw new Error("No response body");
     }
 
-    const fileStream = fs.createWriteStream(outputPath);
+    const config = JSON.parse(fs.readFileSync("scripts/setlist.json", "utf-8"));
+    const setListSet = new Set(config.sets);
+    const filteredCards = cards.filter((card) => setListSet.has(card.set));
 
-    await pipeline(Readable.from(cardsRes.body), fileStream);
+    fs.writeFileSync(outputPath, JSON.stringify(filteredCards));
 
-    console.log(`Saved cards to ${outputPath}`);
+    console.log(`Saved ${filteredCards.length} cards to ${outputPath}`);
   } catch (err) {
     console.log("Failed to fetch Scryfall data:", err);
   }
